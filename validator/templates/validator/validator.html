@@ -2,20 +2,179 @@
 <html>
 <head>
     <title>Credit Card Validation</title>
+    <style>
+        .error {
+            border: 2px solid red;
+        }
+        .error-message {
+            color: red;
+        }
+    </style>
 </head>
 <body>
-    <h1>Credit Card Validation</h1>
-    <form method="POST" action="{% url 'validator:validate_credit_card' %}">
-        {% csrf_token %}
+    <h1>Welcome to the Credit Card Validation</h1>
+    <p>To validate your credit card, please fill in the details below:</p>
+
+    <form id="credit_card_form">
+        <h2 id="card_type_label">Card Type: Unknown</h2>
+
         <label for="card_number">Card Number:</label>
-        <input type="text" id="card_number" name="card_number" required><br><br>
+        <input type="text" id="card_number" name="card_number" placeholder="4917 4845 8989 7107" oninput="validateForm()" required>
+        <span class="error-message" id="card_number_error"></span>
+
         <label for="expiration_month">Expiration Month:</label>
-        <input type="number" id="expiration_month" name="expiration_month" min="1" max="12" required><br><br>
+        <input type="number" id="expiration_month" name="expiration_month" min="1" max="12" required>
+        <span class="error-message" id="expiration_month_error"></span>
+
         <label for="expiration_year">Expiration Year:</label>
-        <input type="number" id="expiration_year" name="expiration_year" min="2023" required><br><br>
+        <input type="number" id="expiration_year" name="expiration_year" min="2023" required>
+        <span class="error-message" id="expiration_year_error"></span>
+
         <label for="cvv">CVV:</label>
-        <input type="text" id="cvv" name="cvv" required><br><br>
-        <input type="submit" value="Validate Credit Card">
+        <input type="text" id="cvv" name="cvv" minlength="3" maxlength="4" required>
+        <span class="error-message" id="cvv_error"></span>
+
+        <span class="error-message" id="form_error"></span>
+
+        <button type="submit" id="submit_button">Submit</button>
     </form>
+
+    <script>
+        // Function to get the card type based on the card number prefix
+        function getCardType(cardNumber) {
+            var cleanedNumber = cardNumber.replace(/\s/g, ''); // Remove spaces
+
+            if (cleanedNumber.startsWith('4')) {
+                return 'visa';
+            } else if (cleanedNumber.startsWith('5')) {
+                return 'master';
+            } else if (cleanedNumber.startsWith('34') || cleanedNumber.startsWith('37')) {
+                return 'amex';
+            } else if (cleanedNumber.startsWith('6')) {
+                return 'discover';
+            } else {
+                return 'unknown';
+            }
+        }
+
+        // Function to update the card type label dynamically
+        function updateCardTypeLabel() {
+            var cardNumberInput = document.getElementById('card_number');
+            var cardNumberValue = cardNumberInput.value.replace(/\s/g, ''); // Remove spaces
+            var cardType = getCardType(cardNumberValue);
+
+            var cardTypeLabel = document.getElementById('card_type_label');
+            cardTypeLabel.textContent = 'Card Type: ' + cardType.charAt(0).toUpperCase() + cardType.slice(1);
+        }
+
+        // Function to validate the form
+        function validateForm(event) {
+            event.preventDefault();
+
+            var cardNumberInput = document.getElementById('card_number');
+            var expirationMonthInput = document.getElementById('expiration_month');
+            var expirationYearInput = document.getElementById('expiration_year');
+            var cvvInput = document.getElementById('cvv');
+            var formError = document.getElementById('form_error');
+
+            var cardNumberValue = cardNumberInput.value.replace(/\s/g, ''); // Remove spaces
+
+            var error = false;
+
+            // Validate card number
+            if (cardNumberValue.length < 15 || cardNumberValue.length > 19) {
+                cardNumberInput.classList.add('error');
+                document.getElementById('card_number_error').textContent = 'Card number must be between 15 and 19 digits long';
+                error = true;
+            } else {
+                cardNumberInput.classList.remove('error');
+                document.getElementById('card_number_error').textContent = '';
+            }
+
+            // Validate expiration month
+            if (expirationMonthInput.value < 1 || expirationMonthInput.value > 12) {
+                expirationMonthInput.classList.add('error');
+                document.getElementById('expiration_month_error').textContent = 'Invalid expiration month';
+                error = true;
+            } else {
+                expirationMonthInput.classList.remove('error');
+                document.getElementById('expiration_month_error').textContent = '';
+            }
+
+            // Validate expiration year
+            if (expirationYearInput.value < 2023) {
+                expirationYearInput.classList.add('error');
+                document.getElementById('expiration_year_error').textContent = 'Invalid expiration year';
+                error = true;
+            } else {
+                expirationYearInput.classList.remove('error');
+                document.getElementById('expiration_year_error').textContent = '';
+            }
+
+            // Validate CVV
+            var cardType = getCardType(cardNumberValue);
+            var cvvLength = cardType === 'amex' ? 4 : 3;
+            if (cvvInput.value.length !== cvvLength) {
+                cvvInput.classList.add('error');
+                document.getElementById('cvv_error').textContent = 'CVV must be ' + cvvLength + ' digits long';
+                error = true;
+            } else {
+                cvvInput.classList.remove('error');
+                document.getElementById('cvv_error').textContent = '';
+            }
+
+            // Luhn's algorithm validation
+            if (!luhnCheck(cardNumberValue)) {
+                cardNumberInput.classList.add('error');
+                document.getElementById('card_number_error').textContent = 'Invalid card number';
+                error = true;
+            }
+
+            // Show form-level error message
+            if (error) {
+                formError.textContent = 'Please correct the errors in the form';
+                formError.style.display = 'block';
+            } else {
+                formError.textContent = '';
+                formError.style.display = 'none';
+                document.getElementById('credit_card_form').submit();
+            }
+        }
+
+        // Function to check the validity of a credit card number using Luhn's algorithm
+        function luhnCheck(cardNumber) {
+            var cleanedNumber = cardNumber.replace(/\s/g, ''); // Remove spaces
+            var sum = 0;
+            var isSecondDigit = false;
+
+            for (var i = cleanedNumber.length - 1; i >= 0; i--) {
+                var digit = parseInt(cleanedNumber.charAt(i));
+
+                if (isSecondDigit) {
+                    digit *= 2;
+                    if (digit > 9) {
+                        digit -= 9;
+                    }
+                }
+
+                sum += digit;
+                isSecondDigit = !isSecondDigit;
+            }
+
+            return sum % 10 === 0;
+        }
+
+        // Event listener for card number input
+        var cardNumberInput = document.getElementById('card_number');
+        cardNumberInput.addEventListener('input', function () {
+            updateCardTypeLabel();
+        });
+
+        // Event listener for form submission
+        var submitButton = document.getElementById('submit_button');
+        submitButton.addEventListener('click', function (event) {
+            validateForm(event);
+        });
+    </script>
 </body>
 </html>
