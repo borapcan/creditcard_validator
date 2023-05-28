@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Credit Card Validation</title>
+</head>
+<body>
+    <h1>Credit Card Validation</h1>
+    <form method="POST" action="{% url 'validator:validate_credit_card' %}">
+        {% csrf_token %}
+        <label for="card_number">Card Number:</label>
+        <input type="text" id="card_number" name="card_number" required><br><br>
+        <label for="expiration_month">Expiration Month:</label>
+        <input type="number" id="expiration_month" name="expiration_month" min="1" max="12" required><br><br>
+        <label for="expiration_year">Expiration Year:</label>
+        <input type="number" id="expiration_year" name="expiration_year" min="2023" required><br><br>
+        <label for="cvv">CVV:</label>
+        <input type="text" id="cvv" name="cvv" required><br><br>
+        <input type="submit" value="Validate Credit Card">
+    </form>
+</body>
+</html>
